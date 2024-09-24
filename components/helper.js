@@ -15,7 +15,7 @@ function escapeRegularJsInclude(value) {
 // if (process.env.buildEntry === 'preview') {
 //   module.exports = {};
 // } else {
-  module.exports = {
+  export {
     getChatBiProductName,
     escapeRegularJsInclude
   }

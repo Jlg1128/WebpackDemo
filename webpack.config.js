@@ -6,8 +6,8 @@ const TerserPlugin = require("terser-webpack-plugin");
 const miniCssExtractPlugin = require('mini-css-extract-plugin');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 const {argv} = require('yargs');
+const MyPlugin = require('./plugin');
 require('webpack-dev-server');
-
 const sassModuleRegex = /\.(scss|sass)$/;
 function getCSSLoaders({isEnvProduction, enableCssModules}) {
   const configScssPath = path.resolve(__dirname, './public/config.scss');
@@ -94,7 +94,6 @@ const isPreview = process.env.MODE === 'preview';
 const useLayer = !!process.env.USELAYER;
 console.log('预览模式', isPreview);
 console.log('使用layer', useLayer);
-console.log(process.env.NODE_ENV);
 const swcOptions = {
   jsc: {
     parser: {
@@ -120,6 +119,9 @@ const jsLoaders = [
   {
     loader: 'swc-loader',
     options: swcOptions
+  },
+  {
+    loader: 'replace-loader-other'
   }
 ].filter(Boolean);
 
@@ -147,30 +149,11 @@ const config = {
   //   type: 'filesystem',
   //   store: 'pack',
   //   cacheDirectory: path.resolve(__dirname, './node_modules/.cache/webpack'),
-  //   memoryCacheUnaffected: true,
   // },
-  entry: !useLayer ? isPreview ? {
-    preview: {
-      //   layer: 'preview',
-        import: './preview.js',
-      }
-  } : {
-    index: {
-      // layer: 'other',
-      import: './index.js',
-    },
-  } : {
-    index: {
-      import: './index.js',
-    },
-    preview: {
-      layer: 'preview',
-      import: './preview.js',
-    }
-  },
+  entry: './index.js',
   resolve: {
     alias: {
-      comp: path.resolve('components')
+      comp: path.resolve('components'),
     },
   },
   resolveLoader: {
@@ -179,6 +162,8 @@ const config = {
       'replace-loader-preview': path.resolve(__dirname, './replace-loader-preview.js'),
       'replace-buildentry-loader-preview': path.resolve(__dirname, './replace-buildentry-loader-preview.js'),
       'replace-buildentry-loader-other': path.resolve(__dirname, './replace-buildentry-loader-other.js'),
+      // 'pitch-loader': path.resolve(__dirname, './pitch-loader.js'),
+      // 'ts-loader': path.resolve(__dirname, './ts-loader.js'),
     }
   },
   plugins:[
@@ -190,9 +175,10 @@ const config = {
     // new webpack.DefinePlugin({
     //   'process.env.buildEntry': process.env.MODE === 'preview' ? '"preview"' : '"other"'
     // }),
-    // new miniCssExtractPlugin({
-    //   filename: 'css/' + '[name].css'
-    // }),
+    new miniCssExtractPlugin({
+      filename: 'css/' + '[name].css'
+    }),
+    // new MyPlugin(),
     // new RemovePreviewModulePlugin({
     //   needRemoveModulePaths: ['modal.js'],
     // })
@@ -201,25 +187,13 @@ const config = {
     rules: [
       {
         test: /\.js$/,
-        include: /node_modules(\/|\\)monaco-editor/,
+        exclude: /node_modules(\/|\\)monaco-editor/,
         use: jsLoaders,
       },
-      {
-        test: /\.js$/,
-        include: PREVIEW_ONDEMAND_FILE_MATCH_REG,
-        issuerLayer: 'preview',
-        use: ['replace-buildentry-loader-preview']
-        // oneOf: [
-        //   {
-        //     issuerLayer: 'preview',
-        //     use: ['replace-buildentry-loader-preview']
-        //   },
-        //   {
-        //     issuerLayer: 'other',
-        //     use: ['replace-buildentry-loader-other']
-        //   },
-        // ],
-      },
+      // {
+      //   test: /\.ts$/,
+      //   use: ['pitch-loader'],
+      // },
       {
         test: /\.css$/,
         include: /node_modules(\/|\\)monaco-editor/,
@@ -227,17 +201,8 @@ const config = {
       }, 
       {
         test: /\.scss$/,
-        use: getCSSLoaders({isEnvProduction: true, enableCssModules: false})
+        use: getCSSLoaders({isEnvProduction, enableCssModules: false})
       },
-      // {
-      //   test: /worker\.js$/,
-      //   use: {
-      //     loader: 'worker-loader',
-      //     options: {
-      //       filename: `[name].js`,
-      //     },
-      //   },
-      // }
     ]
   },
   optimization: {
@@ -268,73 +233,6 @@ const config = {
   // },
   optimization: {
     usedExports: true,
-    // splitChunks: {
-    //   cacheGroups: {
-    //     asyncRouterScreen: {
-    //       name: 'asyncRouterScreen',
-    //       test: () => true,
-    //       chunks: 'async',
-    //       priority: 30,
-    //       /**
-    //        * @param {webpack.Module} module
-    //        * @param {{chunkGraph: webpack.ChunkGraph, moduleGraph: webpack.ModuleGraph}} param
-    //        */
-    //       // (module, {chunkGraph, moduleGraph}) => {
-    //       //   if (module.resource && module.resource.includes('webpackDemo/components/modal.js')) {
-    //       //     const o = moduleGraph.getIncomingConnections(module);
-    //       //     // console.log(o.size);
-              
-    //       //     // o.forEach(item => {
-    //       //     //   console.log(item.originModule.resource);
-    //       //     //   console.log(item.module.resource);
-    //       //     // })
-    //       //     // console.log(moduleGraph.getOutgoingConnections(module));
-    //       //   }
-    //       //   return true
-    //       // },
-    //     },
-        
-    //   },
-    // },
-    splitChunks: {
-      cacheGroups: {
-        // 异步路由包用asyncRouter开头
-        asyncRouterScreen: {
-          /**
-           * 
-           * @param {webpack.Module} module 
-           * @param {webpack.Chunk[]} chunks 
-           * @param {*} cacheGroupKey 
-           * @returns 
-           */
-          name(module, chunks, cacheGroupKey) {
-            debugger
-            const moduleFileName = module
-            .identifier()
-            .split('/')
-            .reduceRight((item) => item);
-            console.log(chunks.map((item) => item.name));
-            const allChunksNames = chunks.map((item) => item.name).join('~');
-            console.log(allChunksNames);
-            console.log(moduleFileName);
-            
-            return 'asyncRouterScreen';
-          },
-          // test: /** @param {webpack.Module} module */(module) => module.getChunks().find(chunk => (chunk.name || '').startsWith('async-router-screen')),
-          test: () => {
-            return true;
-          },
-          chunks: 'async',
-          // minChunks: 1,
-          maxAsyncRequests: 1,
-          // minSize: 22020210301203120301,
-        },
-        // default: {
-        //   chunks: 'all',
-        //   minSize: 0,
-        // }
-      }
-    }
   },
 }
 

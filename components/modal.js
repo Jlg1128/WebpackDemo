@@ -1,13 +1,8 @@
 const { getChatBiProductName, escapeRegularJsInclude } = require('./helper');
+// import {getChatBiProductName, escapeRegularJsInclude} from './helper';
+import './modal.scss';
 
-
-import('./config').then((a) => {
-  window.b = a.config;
-})
-
-import('./test')
-
-module.exports = function RegularFac() {
+export default function RegularFac() {
   return {
     name: 'regular-fc',
     config() {

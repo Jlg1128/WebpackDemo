@@ -1,11 +1,9 @@
-require('../other/common');
-import('./config2').then((x) => {
-  window.a = x.config2()
-});
-// const x = require('./config2')
-// window.a = x.config2()
+// import './config.scss';
+// import('./common.js').then((res) => {
+//   window.res = res;
+// })
 
-module.exports = {
+export default {
   config() {
 
   }
